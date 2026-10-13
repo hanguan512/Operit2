@@ -196,11 +196,15 @@ class _PeerListenerSettingsState extends State<PeerListenerSettings> {
       setState(() => _error = l10n.settingsPeerDiscoveryNeedsTransport);
       return false;
     }
-    // TCP and the shared HTTP/WS server currently bind the same configured port.
-    if (activeTransports.contains(PeerTransport.tcp) &&
-        (activeTransports.contains(PeerTransport.http) ||
-            activeTransports.contains(PeerTransport.webSocket))) {
+    if (_portConflict) {
       setState(() => _error = l10n.settingsPeerPortConflict);
+      // The inline error sits at the bottom of the scrollable dialog and
+      // can be below the fold once the advanced section is expanded;
+      // surface the same guidance as a transient prompt so the rejected
+      // save is never silent.
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.settingsPeerPortConflict)),
+      );
       return false;
     }
     final host = _bindHost.text.trim().replaceAll(RegExp(r'^\[|\]$'), '');
@@ -302,6 +306,15 @@ class _PeerListenerSettingsState extends State<PeerListenerSettings> {
   bool _supports(PeerTransport transport) {
     final capabilities = _capabilities;
     return capabilities != null && capabilities.transports.contains(transport);
+  }
+
+  /// True when the supported selection mixes TCP with the HTTP/WS pair: they
+  /// all bind the same configured port, so the listener cannot serve both.
+  bool get _portConflict {
+    final activeTransports = _transports.where(_supports);
+    return activeTransports.contains(PeerTransport.tcp) &&
+        (activeTransports.contains(PeerTransport.http) ||
+            activeTransports.contains(PeerTransport.webSocket));
   }
 
   /// Builds authentication controls and the explicit listener settings form.
@@ -410,6 +423,19 @@ class _PeerListenerSettingsState extends State<PeerListenerSettings> {
                     ],
                   ),
                   const SizedBox(height: 12),
+                  // Flag the conflict where the user is selecting, before any
+                  // save attempt: the bottom-of-dialog error alone can sit
+                  // below the fold of the scrollable content.
+                  if (_portConflict)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 4),
+                      child: Text(
+                        l10n.settingsPeerPortConflict,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).colorScheme.error,
+                        ),
+                      ),
+                    ),
                   OperitFormStyles.dropdownButtonFormField<PeerHostPortMode>(
                     context,
                     initialValue: _portMode,

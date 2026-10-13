@@ -300,10 +300,18 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.widgetWithText(FilterChip, 'TCP'));
     await tester.pumpAndSettle();
+    // The conflict is flagged next to the transport chips before any save,
+    // so the reason is visible where the selection is being made.
+    expect(find.textContaining('TCP cannot currently'), findsOneWidget);
     final count = bridge.calls.length;
     await save(tester);
     expect(bridge.calls.length, count);
-    expect(find.textContaining('TCP cannot currently'), findsOneWidget);
+    // The rejected save keeps the dialog open, repeats the guidance in the
+    // footer error, and surfaces a transient prompt that stays visible even
+    // when the footer sits below the fold of the scrollable content.
+    expect(find.byType(PeerListenerSettingsDialog), findsOneWidget);
+    expect(find.byType(SnackBar), findsOneWidget);
+    expect(find.textContaining('TCP cannot currently'), findsNWidgets(3));
   });
   testWidgets('fixed mode keeps the configured address and port', (
     tester,
