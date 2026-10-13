@@ -1,0 +1,25 @@
+[package]
+name = "operit-linux-node"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+publish = false
+
+[[bin]]
+name = "operit-linux-node"
+path = "src/main.rs"
+
+[dependencies]
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync", "time", "signal"] }
+uuid = { version = "1", features = ["v4"] }
+operit-core-application = { path = "../core/crates/application/core" }
+operit-host-api = { path = "../core/crates/foundation/host-api" }
+operit-host-linux-native = { path = "../hosts/linux" }
+operit-link = { path = "../core/crates/foundation/link" }
+operit-node-runtime = { path = "../core/crates/node/runtime" }
+
+[profile.release]
+panic = "unwind"
+strip = true
+
+[workspace]
